@@ -1,0 +1,5 @@
+mod OtpImportSmoke
+  use Otp
+
+  fn accepts_ping() -> Bool =
+    handles(message_code(:ping, 0), :ping, 0)
