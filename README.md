@@ -8,8 +8,15 @@ operations. It contains only the executable algebra:
 - `Otp` is the typed surface for process handles, calls, messages, monitors,
   timers, names, selectors, actors, state machines, and supervisors.
 
-The research metatheory, proof corpus, and differential oracle are deliberately
-not part of this package.
+The executable package surface remains the three modules above. The repository
+also owns its formal model and verification corpus:
+
+- `metatheory/src` contains executable models, relations, and machine-checked
+  proofs under the package-owned `Otp.Meta.*` namespace.
+- `metatheory/test` contains the ExUnit regression suite.
+- `metatheory/oracle` contains the paired Cure and Idris verdict corpus.
+
+These are development inputs, not modules in Cure's shipped standard library.
 
 ## Use as a path dependency
 
@@ -31,6 +38,18 @@ mod Example
 From a Cure project, run `cure deps` before compiling the project.
 
 ## Development
+
+Run the formal regression suite from this repository:
+
+```sh
+mix test
+mix otp.oracle.replay
+```
+
+The replay command checks Cure against the committed differential verdicts
+without requiring Idris. To regenerate those verdicts against Idris 2, run
+`mix otp.oracle`; set `IDRIS2_BIN` when `idris2` is not in the default
+development location.
 
 The `integration/consumer` project is a real path-dependency smoke test. From
 that directory:

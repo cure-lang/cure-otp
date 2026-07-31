@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2026"
 description = "A typed Cure algebra for Erlang/OTP processes"
 license = "Apache-2.0"
-source_paths = ["lib"]
+source_paths = ["lib", "metatheory/src"]
 
 [dependencies]
