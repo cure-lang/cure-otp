@@ -5,13 +5,30 @@ mod EffAlgebra
   fn seq(m: Eff, n: Eff) -> Eff = match m
     ENil()       -> n
     ECons(op, k) -> ECons(op, seq(k, n))
-  fn seq_nil_l(n: Eff) -> Equivalent(Eff, seq(ENil(), n), n) = reflexive(n)
-  fn seq_nil_r(m: Eff) -> Equivalent(Eff, seq(m, ENil()), m) = match m
-    ENil()       -> reflexive(ENil())
-    ECons(op, k) -> rewrite seq_nil_r(k) in reflexive(ECons(op, k))
-  fn seq_assoc(a: Eff, b: Eff, c: Eff) -> Equivalent(Eff, seq(seq(a, b), c), seq(a, seq(b, c))) = match a
-    ENil()       -> reflexive(seq(b, c))
-    ECons(op, k) -> rewrite seq_assoc(k, b, c) in reflexive(ECons(op, seq(k, seq(b, c))))
+  fn seq_nil_l(n: Eff) -> Equivalent(Eff, seq(ENil(), n), n) = proof chain
+    seq(ENil(), n) == n
+    because
+      simplify
+  fn seq_nil_r(m: Eff) -> Equivalent(Eff, seq(m, ENil()), m) = induction m
+    case ENil => proof chain
+      seq(ENil(), ENil()) == ENil()
+      because
+        simplify
+    case ECons(op, k, induction_hypothesis) => proof chain
+      seq(ECons(op, k), ENil()) == ECons(op, k)
+      because
+        rewrite using induction_hypothesis
+        simplify
+  fn seq_assoc(a: Eff, b: Eff, c: Eff) -> Equivalent(Eff, seq(seq(a, b), c), seq(a, seq(b, c))) = induction a
+    case ENil => proof chain
+      seq(seq(ENil(), b), c) == seq(ENil(), seq(b, c))
+      because
+        simplify
+    case ECons(op, k, induction_hypothesis) => proof chain
+      seq(seq(ECons(op, k), b), c) == seq(ECons(op, k), seq(b, c))
+      because
+        rewrite using induction_hypothesis
+        simplify
 
   fn plus(m: Nat, n: Nat) -> Nat = match m
     Z()  -> n
@@ -22,10 +39,23 @@ mod EffAlgebra
       OSend(t) -> S(count_sends(k))
       ORecv(t) -> count_sends(k)
       OSpawn() -> count_sends(k)
-  fn count_hom(a: Eff, b: Eff) -> Equivalent(Nat, count_sends(seq(a, b)), plus(count_sends(a), count_sends(b))) = match a
-    ENil()       -> reflexive(count_sends(b))
-    ECons(op, k) -> match op
-      OSend(t) -> rewrite count_hom(k, b) in reflexive(S(plus(count_sends(k), count_sends(b))))
-      ORecv(t) -> count_hom(k, b)
-      OSpawn() -> count_hom(k, b)
+  fn count_hom(a: Eff, b: Eff) -> Equivalent(Nat, count_sends(seq(a, b)), plus(count_sends(a), count_sends(b))) = induction a
+    case ENil => proof chain
+      count_sends(seq(ENil(), b)) == plus(count_sends(ENil()), count_sends(b))
+      because
+        simplify
+    case ECons(op, k, induction_hypothesis) => match op
+      OSend(t) -> proof chain
+        count_sends(seq(ECons(OSend(t), k), b)) == plus(count_sends(ECons(OSend(t), k)), count_sends(b))
+        because
+          rewrite using induction_hypothesis
+          simplify
+      ORecv(t) -> proof chain
+        count_sends(seq(ECons(ORecv(t), k), b)) == plus(count_sends(ECons(ORecv(t), k)), count_sends(b))
+        because
+          simplify using induction_hypothesis
+      OSpawn() -> proof chain
+        count_sends(seq(ECons(OSpawn(), k), b)) == plus(count_sends(ECons(OSpawn(), k)), count_sends(b))
+        because
+          simplify using induction_hypothesis
 end

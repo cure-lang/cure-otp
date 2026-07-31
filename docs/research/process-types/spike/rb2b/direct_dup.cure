@@ -1,5 +1,0 @@
-mod DirectDup
-  type Box = MkBox
-  type Pair = MkPair(Box, Box)
-  fn f( c : Box) -> Pair = MkPair(c, c)
-end

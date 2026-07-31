@@ -13,8 +13,10 @@ mod CallSession
     SRecvRep(p, k)  -> SSendRep(p, dual(k))
   fn client(req: Req) -> SType = SSendReq(req, SRecvRep(reply_for(req), SEnd()))
   fn server(req: Req) -> SType = SRecvReq(req, SSendRep(reply_for(req), SEnd()))
-  fn call_duality(req: Req) -> Equivalent(SType, client(req), dual(server(req))) =
-    reflexive(client(req))
+  fn call_duality(req: Req) -> Equivalent(SType, client(req), dual(server(req))) = proof chain
+    client(req) == dual(server(req))
+    because
+      simplify
   type Compat indices (l: SType, r: SType)
     CEnd  : Compat(SEnd, SEnd)
     CReqL : (q: Req) -> Compat(l, r) -> Compat(SSendReq(q, l), SRecvReq(q, r))

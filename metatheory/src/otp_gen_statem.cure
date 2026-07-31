@@ -21,13 +21,29 @@ mod Otp.Meta.GenStatem
     S(k) -> S(plus(k, n))
   fn plus_n_z(n: Nat) -> Equivalent(Nat, plus(n, Z()), n) = match n
     Z()  -> reflexive(Z())
-    S(k) -> rewrite plus_n_z(k) in reflexive(S(k))
+    S(k) -> proof chain
+      plus(S(k), Z()) == S(k)
+      because
+        rewrite using plus_n_z(k)
+        simplify
   fn plus_n_s(m: Nat, n: Nat) -> Equivalent(Nat, plus(m, S(n)), S(plus(m, n))) = match m
     Z()  -> reflexive(S(n))
-    S(k) -> rewrite plus_n_s(k, n) in reflexive(S(S(plus(k, n))))
+    S(k) -> proof chain
+      plus(S(k), S(n)) == S(plus(S(k), n))
+      because
+        rewrite using plus_n_s(k, n)
+        simplify
   fn plus_comm(m: Nat, n: Nat) -> Equivalent(Nat, plus(m, n), plus(n, m)) = match m
-    Z()  -> rewrite plus_n_z(n) in reflexive(n)
-    S(k) -> rewrite plus_n_s(n, k) in rewrite plus_comm(k, n) in reflexive(S(plus(n, k)))
+    Z()  -> proof chain
+      plus(Z(), n) == plus(n, Z())
+      because
+        simplify using plus_n_z(n)
+    S(k) -> proof chain
+      plus(S(k), n) == plus(n, S(k))
+      because
+        rewrite using plus_n_s(n, k)
+        rewrite using plus_comm(k, n)
+        simplify
 
   ## A machine's event bookkeeping: (events pending delivery, events postponed).
   type SConfig = MkSC(Nat, Nat)
@@ -49,15 +65,28 @@ mod Otp.Meta.GenStatem
   fn handle_progresses(p: Nat, q: Nat) -> Equivalent(Nat, unproc(MkSC(S(p), q)), S(unproc(MkSC(p, q)))) =
     reflexive(S(plus(p, q)))
   fn postpone_conserves(p: Nat, q: Nat) -> Equivalent(Nat, unproc(MkSC(S(p), q)), unproc(MkSC(p, S(q)))) =
-    rewrite plus_n_s(p, q) in reflexive(S(plus(p, q)))
+    proof chain
+      unproc(MkSC(S(p), q)) == unproc(MkSC(p, S(q)))
+      because
+        rewrite using plus_n_s(p, q)
+        simplify
   fn redeliver_conserves(p: Nat, q: Nat) -> Equivalent(Nat, unproc(MkSC(p, q)), unproc(MkSC(plus(q, p), Z()))) =
-    rewrite plus_n_z(plus(q, p)) in plus_comm(p, q)
+    proof chain
+      unproc(MkSC(p, q)) == unproc(MkSC(plus(q, p), Z()))
+      because
+        rewrite using plus_n_z(plus(q, p))
+        simplify using plus_comm(p, q)
 
   fn plus_assoc(a: Nat, b: Nat, c: Nat) -> Equivalent(Nat, plus(plus(a, b), c), plus(a, plus(b, c))) = match a
     Z()  -> reflexive(plus(b, c))
-    S(k) -> rewrite plus_assoc(k, b, c) in reflexive(S(plus(k, plus(b, c))))
+    S(k) -> proof chain
+      plus(plus(S(k), b), c) == plus(S(k), plus(b, c))
+      because
+        rewrite using plus_assoc(k, b, c)
+        simplify
   fn plus_cong_r(a: Nat, {x: Nat}, {y: Nat}, e: Equivalent(Nat, x, y)) -> Equivalent(Nat, plus(a, x), plus(a, y)) =
-    rewrite e in reflexive(plus(a, y))
+    match e
+      reflexive() -> reflexive(plus(a, y))
 
   ## A RUN of event moves — the reflexive-transitive closure of `SStep`. A `gen_statem`'s whole
   ## trajectory is a chain of HANDLE / POSTPONE / REDELIVER moves.
@@ -89,5 +118,10 @@ mod Otp.Meta.GenStatem
   ## run contributes `0`, and each leading move's handle-count factors out via `plus_assoc`.
   fn handle_count_trans({c1: SConfig}, {c2: SConfig}, {c3: SConfig}, r1: SRun(c1, c2), r2: SRun(c2, c3)) -> Equivalent(Nat, handle_count(srun_trans(r1, r2)), plus(handle_count(r1), handle_count(r2))) = match r1
     SRDone()        -> reflexive(handle_count(r2))
-    SRMore(s, rest) -> trans(plus_cong_r(step_handles(s), handle_count_trans(rest, r2)), sym(plus_assoc(step_handles(s), handle_count(rest), handle_count(r2))))
+    SRMore(s, rest) -> proof chain
+      handle_count(srun_trans(SRMore(s, rest), r2)) == plus(handle_count(SRMore(s, rest)), handle_count(r2))
+      because
+        rewrite using plus_cong_r(step_handles(s), handle_count_trans(rest, r2))
+        rewrite backwards using plus_assoc(step_handles(s), handle_count(rest), handle_count(r2))
+        simplify
 end

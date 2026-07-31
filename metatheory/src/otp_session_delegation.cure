@@ -30,10 +30,26 @@ mod Otp.Meta.SessionDelegation
   ## channel-passing protocol still determine each other.
   fn dual_involution(s: SType) -> Equivalent(SType, dual(dual(s)), s) = match s
     SEnd()        -> reflexive(SEnd())
-    SSend(t, k)   -> rewrite dual_involution(k) in reflexive(SSend(t, k))
-    SRecv(t, k)   -> rewrite dual_involution(k) in reflexive(SRecv(t, k))
-    SDeleg(a, k)  -> rewrite dual_involution(k) in reflexive(SDeleg(a, k))
-    SResume(a, k) -> rewrite dual_involution(k) in reflexive(SResume(a, k))
+    SSend(t, k)   -> proof chain
+      dual(dual(SSend(t, k))) == SSend(t, k)
+      because
+        rewrite using dual_involution(k)
+        simplify
+    SRecv(t, k)   -> proof chain
+      dual(dual(SRecv(t, k))) == SRecv(t, k)
+      because
+        rewrite using dual_involution(k)
+        simplify
+    SDeleg(a, k)  -> proof chain
+      dual(dual(SDeleg(a, k))) == SDeleg(a, k)
+      because
+        rewrite using dual_involution(k)
+        simplify
+    SResume(a, k) -> proof chain
+      dual(dual(SResume(a, k))) == SResume(a, k)
+      because
+        rewrite using dual_involution(k)
+        simplify
 
   ## Structural compatibility, including channel passing: one side delegates a channel of type `a`,
   ## the other resumes a channel of the SAME type `a`, and the carriers continue compatibly.
@@ -44,16 +60,16 @@ mod Otp.Meta.SessionDelegation
     CDel : (a: SType) -> Compat(l, r) -> Compat(SDeleg(a, l), SResume(a, r))
     CRes : (a: SType) -> Compat(l, r) -> Compat(SResume(a, l), SDeleg(a, r))
 
-  fn ssend_cong(t: Tag, {a: SType}, {b: SType}, e: Equivalent(SType, a, b)) -> Equivalent(SType, SSend(t, a), SSend(t, b)) =
-    rewrite e in reflexive(SSend(t, b))
-  fn srecv_cong(t: Tag, {a: SType}, {b: SType}, e: Equivalent(SType, a, b)) -> Equivalent(SType, SRecv(t, a), SRecv(t, b)) =
-    rewrite e in reflexive(SRecv(t, b))
+  fn ssend_cong(t: Tag, {a: SType}, {b: SType}, e: Equivalent(SType, a, b)) -> Equivalent(SType, SSend(t, a), SSend(t, b)) = match e
+    reflexive() -> reflexive(SSend(t, b))
+  fn srecv_cong(t: Tag, {a: SType}, {b: SType}, e: Equivalent(SType, a, b)) -> Equivalent(SType, SRecv(t, a), SRecv(t, b)) = match e
+    reflexive() -> reflexive(SRecv(t, b))
   ## Congruence for the delegate/resume constructors: the carried type `a` is fixed, the carrier
   ## continuation varies.
-  fn sdeleg_cong(a: SType, {x: SType}, {y: SType}, e: Equivalent(SType, x, y)) -> Equivalent(SType, SDeleg(a, x), SDeleg(a, y)) =
-    rewrite e in reflexive(SDeleg(a, y))
-  fn sresume_cong(a: SType, {x: SType}, {y: SType}, e: Equivalent(SType, x, y)) -> Equivalent(SType, SResume(a, x), SResume(a, y)) =
-    rewrite e in reflexive(SResume(a, y))
+  fn sdeleg_cong(a: SType, {x: SType}, {y: SType}, e: Equivalent(SType, x, y)) -> Equivalent(SType, SDeleg(a, x), SDeleg(a, y)) = match e
+    reflexive() -> reflexive(SDeleg(a, y))
+  fn sresume_cong(a: SType, {x: SType}, {y: SType}, e: Equivalent(SType, x, y)) -> Equivalent(SType, SResume(a, x), SResume(a, y)) = match e
+    reflexive() -> reflexive(SResume(a, y))
 
   ## **COMPATIBILITY = DUALITY (with delegation).** Compatible endpoints are exactly dual — channel
   ## passing preserves the invariant: a delegated channel of type `a` is resumed as the same `a`,

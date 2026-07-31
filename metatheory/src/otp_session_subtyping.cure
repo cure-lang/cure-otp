@@ -46,7 +46,10 @@ mod Otp.Meta.SessionSubtyping
 
   ## Congruence for `MkLSet` under componentwise equality.
   fn mklset_cong({a1: B}, {a2: B}, {b1: B}, {b2: B}, {c1: B}, {c2: B}, ea: Equivalent(B, a1, a2), eb: Equivalent(B, b1, b2), ec: Equivalent(B, c1, c2)) -> Equivalent(LSet, MkLSet(a1, b1, c1), MkLSet(a2, b2, c2)) =
-    rewrite ea in rewrite eb in rewrite ec in reflexive(MkLSet(a2, b2, c2))
+    match ea
+      reflexive() -> match eb
+        reflexive() -> match ec
+          reflexive() -> reflexive(MkLSet(a2, b2, c2))
 
   ## Label-set subset is ANTISYMMETRIC: `s ⊆ t` and `t ⊆ s` force `s = t` (componentwise
   ## `ble_antisym`).
@@ -139,14 +142,18 @@ mod Otp.Meta.SessionSubtyping
       CBraSel(cl, c2) -> CBraSel(lsub_trans(cl, sl), narrow(sub2, c2))
 
   ## Congruences for the session constructors under equality of continuations / label sets.
-  fn ssend_cong(tg: Tag, {x: SType}, {y: SType}, e: Equivalent(SType, x, y)) -> Equivalent(SType, SSend(tg, x), SSend(tg, y)) =
-    rewrite e in reflexive(SSend(tg, y))
-  fn srecv_cong(tg: Tag, {x: SType}, {y: SType}, e: Equivalent(SType, x, y)) -> Equivalent(SType, SRecv(tg, x), SRecv(tg, y)) =
-    rewrite e in reflexive(SRecv(tg, y))
+  fn ssend_cong(tg: Tag, {x: SType}, {y: SType}, e: Equivalent(SType, x, y)) -> Equivalent(SType, SSend(tg, x), SSend(tg, y)) = match e
+    reflexive() -> reflexive(SSend(tg, y))
+  fn srecv_cong(tg: Tag, {x: SType}, {y: SType}, e: Equivalent(SType, x, y)) -> Equivalent(SType, SRecv(tg, x), SRecv(tg, y)) = match e
+    reflexive() -> reflexive(SRecv(tg, y))
   fn sselect_cong2({s1: LSet}, {s2: LSet}, {x: SType}, {y: SType}, es: Equivalent(LSet, s1, s2), ek: Equivalent(SType, x, y)) -> Equivalent(SType, SSelect(s1, x), SSelect(s2, y)) =
-    rewrite es in rewrite ek in reflexive(SSelect(s2, y))
+    match es
+      reflexive() -> match ek
+        reflexive() -> reflexive(SSelect(s2, y))
   fn sbranch_cong2({s1: LSet}, {s2: LSet}, {x: SType}, {y: SType}, es: Equivalent(LSet, s1, s2), ek: Equivalent(SType, x, y)) -> Equivalent(SType, SBranch(s1, x), SBranch(s2, y)) =
-    rewrite es in rewrite ek in reflexive(SBranch(s2, y))
+    match es
+      reflexive() -> match ek
+        reflexive() -> reflexive(SBranch(s2, y))
 
   ## **SUBTYPING IS ANTISYMMETRIC.** Mutual subtypes are structurally equal — `Sub(s, t)` and
   ## `Sub(t, s)` force `s = t`. Induction on both derivations; the choice cases use `lsub_antisym`

@@ -57,10 +57,16 @@ mod Otp.Meta.GenEvent
     MNil()                 -> INil()
     MCons(iface, st, rest) -> ICons(iface, interfaces(rest))
 
-  fn snat_cong({a: Nat}, {b: Nat}, e: Equivalent(Nat, a, b)) -> Equivalent(Nat, S(a), S(b)) =
-    rewrite e in reflexive(S(b))
-  fn icons_cong(iface: EvSet, {a: IfaceList}, {b: IfaceList}, e: Equivalent(IfaceList, a, b)) -> Equivalent(IfaceList, ICons(iface, a), ICons(iface, b)) =
-    rewrite e in reflexive(ICons(iface, b))
+  fn snat_cong({a: Nat}, {b: Nat}, e: Equivalent(Nat, a, b)) -> Equivalent(Nat, S(a), S(b)) = proof chain
+    S(a) == S(b)
+    because
+      rewrite using e
+      simplify
+  fn icons_cong(iface: EvSet, {a: IfaceList}, {b: IfaceList}, e: Equivalent(IfaceList, a, b)) -> Equivalent(IfaceList, ICons(iface, a), ICons(iface, b)) = proof chain
+    ICons(iface, a) == ICons(iface, b)
+    because
+      rewrite using e
+      simplify
 
   ## **BROADCAST PRESERVES HANDLER COUNT.** Delivering an event never gains or loses a handler.
   fn notify_preserves_count(e: Event, {ifaces: IfaceList}, mgr: Manager(ifaces)) -> Equivalent(Nat, count(notify(e, mgr)), count(mgr)) = match mgr

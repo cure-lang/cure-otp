@@ -61,8 +61,11 @@ mod Otp.Meta.RestartIntensity
     FRDone()        -> Z()
     FRMore(f, rest) -> S(run_len(rest))
 
-  fn snat_cong({a: Nat}, {b: Nat}, e: Equivalent(Nat, a, b)) -> Equivalent(Nat, S(a), S(b)) =
-    rewrite e in reflexive(S(b))
+  fn snat_cong({a: Nat}, {b: Nat}, e: Equivalent(Nat, a, b)) -> Equivalent(Nat, S(a), S(b)) = proof chain
+    S(a) == S(b)
+    because
+      rewrite using e
+      simplify
 
   ## **RESTART INTENSITY IS EXACT.** The canonical failure run from budget `n` has length `S(n)`:
   ## a supervisor tolerates EXACTLY `n + 1` failures — `n` restarts spending the budget, then one

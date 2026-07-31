@@ -48,10 +48,16 @@ mod Otp.Meta.ThreeParty
         T() -> LRecv(t, project(k, r))
         F() -> project(k, r)
 
-  fn lsend_cong(t: Tag, {a: Local}, {b: Local}, e: Equivalent(Local, a, b)) -> Equivalent(Local, LSend(t, a), LSend(t, b)) =
-    rewrite e in reflexive(LSend(t, b))
-  fn lrecv_cong(t: Tag, {a: Local}, {b: Local}, e: Equivalent(Local, a, b)) -> Equivalent(Local, LRecv(t, a), LRecv(t, b)) =
-    rewrite e in reflexive(LRecv(t, b))
+  fn lsend_cong(t: Tag, {a: Local}, {b: Local}, e: Equivalent(Local, a, b)) -> Equivalent(Local, LSend(t, a), LSend(t, b)) = proof chain
+    LSend(t, a) == LSend(t, b)
+    because
+      rewrite using e
+      simplify
+  fn lrecv_cong(t: Tag, {a: Local}, {b: Local}, e: Equivalent(Local, a, b)) -> Equivalent(Local, LRecv(t, a), LRecv(t, b)) = proof chain
+    LRecv(t, a) == LRecv(t, b)
+    because
+      rewrite using e
+      simplify
 
   ## A protocol whose every message is bilateral between `RA` and `RB`. `RC` never appears.
   type Bilateral indices (g: Global)

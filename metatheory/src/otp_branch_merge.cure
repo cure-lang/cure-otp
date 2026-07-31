@@ -81,46 +81,54 @@ mod Otp.Meta.BranchMerge
   fn merge_idem(l: Local) -> Equivalent(Local, merge(l, l), l) = match l
     LEnd()          -> reflexive(LEnd())
     LSend(t, k)     -> match t
-      TA() -> rewrite merge_idem(k) in reflexive(LSend(TA(), k))
-      TB() -> rewrite merge_idem(k) in reflexive(LSend(TB(), k))
-      TC() -> rewrite merge_idem(k) in reflexive(LSend(TC(), k))
+      TA() -> lsend_cong(TA(), merge_idem(k))
+      TB() -> lsend_cong(TB(), merge_idem(k))
+      TC() -> lsend_cong(TC(), merge_idem(k))
     LRecv(t, k)     -> match t
-      TA() -> rewrite merge_idem(k) in reflexive(LRecv(TA(), k))
-      TB() -> rewrite merge_idem(k) in reflexive(LRecv(TB(), k))
-      TC() -> rewrite merge_idem(k) in reflexive(LRecv(TC(), k))
+      TA() -> lrecv_cong(TA(), merge_idem(k))
+      TB() -> lrecv_cong(TB(), merge_idem(k))
+      TC() -> lrecv_cong(TC(), merge_idem(k))
     LSel(a, A, b, B) -> match a
       TA() -> match b
-        TA() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LSel(TA(), A, TA(), B))
-        TB() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LSel(TA(), A, TB(), B))
-        TC() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LSel(TA(), A, TC(), B))
+        TA() -> lsel_cong(TA(), merge_idem(A), TA(), merge_idem(B))
+        TB() -> lsel_cong(TA(), merge_idem(A), TB(), merge_idem(B))
+        TC() -> lsel_cong(TA(), merge_idem(A), TC(), merge_idem(B))
       TB() -> match b
-        TA() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LSel(TB(), A, TA(), B))
-        TB() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LSel(TB(), A, TB(), B))
-        TC() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LSel(TB(), A, TC(), B))
+        TA() -> lsel_cong(TB(), merge_idem(A), TA(), merge_idem(B))
+        TB() -> lsel_cong(TB(), merge_idem(A), TB(), merge_idem(B))
+        TC() -> lsel_cong(TB(), merge_idem(A), TC(), merge_idem(B))
       TC() -> match b
-        TA() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LSel(TC(), A, TA(), B))
-        TB() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LSel(TC(), A, TB(), B))
-        TC() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LSel(TC(), A, TC(), B))
+        TA() -> lsel_cong(TC(), merge_idem(A), TA(), merge_idem(B))
+        TB() -> lsel_cong(TC(), merge_idem(A), TB(), merge_idem(B))
+        TC() -> lsel_cong(TC(), merge_idem(A), TC(), merge_idem(B))
     LBra(a, A, b, B) -> match a
       TA() -> match b
-        TA() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LBra(TA(), A, TA(), B))
-        TB() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LBra(TA(), A, TB(), B))
-        TC() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LBra(TA(), A, TC(), B))
+        TA() -> lbra_cong(TA(), merge_idem(A), TA(), merge_idem(B))
+        TB() -> lbra_cong(TA(), merge_idem(A), TB(), merge_idem(B))
+        TC() -> lbra_cong(TA(), merge_idem(A), TC(), merge_idem(B))
       TB() -> match b
-        TA() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LBra(TB(), A, TA(), B))
-        TB() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LBra(TB(), A, TB(), B))
-        TC() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LBra(TB(), A, TC(), B))
+        TA() -> lbra_cong(TB(), merge_idem(A), TA(), merge_idem(B))
+        TB() -> lbra_cong(TB(), merge_idem(A), TB(), merge_idem(B))
+        TC() -> lbra_cong(TB(), merge_idem(A), TC(), merge_idem(B))
       TC() -> match b
-        TA() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LBra(TC(), A, TA(), B))
-        TB() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LBra(TC(), A, TB(), B))
-        TC() -> rewrite merge_idem(A) in rewrite merge_idem(B) in reflexive(LBra(TC(), A, TC(), B))
+        TA() -> lbra_cong(TC(), merge_idem(A), TA(), merge_idem(B))
+        TB() -> lbra_cong(TC(), merge_idem(A), TB(), merge_idem(B))
+        TC() -> lbra_cong(TC(), merge_idem(A), TC(), merge_idem(B))
     LErr()          -> reflexive(LErr())
   fn lsend_cong(t: Tag, {a: Local}, {b: Local}, e: Equivalent(Local, a, b)) -> Equivalent(Local, LSend(t, a), LSend(t, b)) =
-    rewrite e in reflexive(LSend(t, b))
+    match e
+      reflexive() -> reflexive(LSend(t, b))
   fn lrecv_cong(t: Tag, {a: Local}, {b: Local}, e: Equivalent(Local, a, b)) -> Equivalent(Local, LRecv(t, a), LRecv(t, b)) =
-    rewrite e in reflexive(LRecv(t, b))
+    match e
+      reflexive() -> reflexive(LRecv(t, b))
   fn lsel_cong(a: Tag, {A1: Local}, {A2: Local}, eA: Equivalent(Local, A1, A2), b: Tag, {B1: Local}, {B2: Local}, eB: Equivalent(Local, B1, B2)) -> Equivalent(Local, LSel(a, A1, b, B1), LSel(a, A2, b, B2)) =
-    rewrite eA in rewrite eB in reflexive(LSel(a, A2, b, B2))
+    match eA
+      reflexive() -> match eB
+        reflexive() -> reflexive(LSel(a, A2, b, B2))
+  fn lbra_cong(a: Tag, {A1: Local}, {A2: Local}, eA: Equivalent(Local, A1, A2), b: Tag, {B1: Local}, {B2: Local}, eB: Equivalent(Local, B1, B2)) -> Equivalent(Local, LBra(a, A1, b, B1), LBra(a, A2, b, B2)) =
+    match eA
+      reflexive() -> match eB
+        reflexive() -> reflexive(LBra(a, A2, b, B2))
   type Role = RA | RB | RC
   fn role_eq(x: Role, y: Role) -> TB2 = match x
     RA() -> match y

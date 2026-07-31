@@ -90,7 +90,8 @@ mod Otp.Meta.Inference
 
   ## When `t = h`, `t` is handled at the head of `TCons(h, rest)`.
   fn handles_here(t: Tag, h: Tag, rest: TagList, eq: Equivalent(Tag, t, h)) -> Handles(t, TCons(h, rest)) =
-    rewrite eq in HHere()
+    match eq
+      reflexive() -> HHere()
 
   ## Disproof for the cons case: a proof of `Handles(t, TCons(h, rest))` is `HHere`
   ## (forcing `h = t`, contradicting `neq`) or `HThere` (giving `Handles(t, rest)`,

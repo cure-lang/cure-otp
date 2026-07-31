@@ -36,8 +36,11 @@ mod Otp.Meta.Conversation
     CRStep : {t: Tag} -> SingleRecv(t, before, mid) -> ConvRecv(rest, mid, after, msgs) -> ConvRecv(PExpect(t, rest), before, after, MCons(t, msgs))
 
   ## Congruence for `MCons` under equality (`xs ≡ ys ⟹ t::xs ≡ t::ys`).
-  fn mcons_cong(t: Tag, {xs: MList}, {ys: MList}, e: Equivalent(MList, xs, ys)) -> Equivalent(MList, MCons(t, xs), MCons(t, ys)) =
-    rewrite e in reflexive(MCons(t, ys))
+  fn mcons_cong(t: Tag, {xs: MList}, {ys: MList}, e: Equivalent(MList, xs, ys)) -> Equivalent(MList, MCons(t, xs), MCons(t, ys)) = proof chain
+    MCons(t, xs) == MCons(t, ys)
+    because
+      rewrite using e
+      simplify
 
   ## **PROTOCOL ORDERING.** The received conversation equals the protocol's tag sequence,
   ## regardless of the mailbox's arrival order — a protocol-directed client always receives its

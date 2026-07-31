@@ -50,10 +50,16 @@ mod Otp.Meta.MultipartySession
     TPAB  : (t: Tag) -> TwoParty(k) -> TwoParty(GMsg(RA, RB, t, k))
     TPBA  : (t: Tag) -> TwoParty(k) -> TwoParty(GMsg(RB, RA, t, k))
 
-  fn lsend_cong(t: Tag, {a: Local}, {b: Local}, e: Equivalent(Local, a, b)) -> Equivalent(Local, LSend(t, a), LSend(t, b)) =
-    rewrite e in reflexive(LSend(t, b))
-  fn lrecv_cong(t: Tag, {a: Local}, {b: Local}, e: Equivalent(Local, a, b)) -> Equivalent(Local, LRecv(t, a), LRecv(t, b)) =
-    rewrite e in reflexive(LRecv(t, b))
+  fn lsend_cong(t: Tag, {a: Local}, {b: Local}, e: Equivalent(Local, a, b)) -> Equivalent(Local, LSend(t, a), LSend(t, b)) = proof chain
+    LSend(t, a) == LSend(t, b)
+    because
+      rewrite using e
+      simplify
+  fn lrecv_cong(t: Tag, {a: Local}, {b: Local}, e: Equivalent(Local, a, b)) -> Equivalent(Local, LRecv(t, a), LRecv(t, b)) = proof chain
+    LRecv(t, a) == LRecv(t, b)
+    because
+      rewrite using e
+      simplify
 
   ## **PROJECTION COHERENCE.** A two-party global protocol projects to DUAL endpoints:
   ## `project(G, RA) = dual(project(G, RB))`. So a well-formed global guarantees its two

@@ -38,9 +38,11 @@ mod BstSearch
     OF() -> reflexive(OF())
     OT() -> reflexive(OT())
   fn orb_cong_l(c: OBit, {a: OBit}, {a2: OBit}, e: Equivalent(OBit, a, a2)) -> Equivalent(OBit, orb(a, c), orb(a2, c)) =
-    rewrite e in reflexive(orb(a2, c))
+    match e
+      reflexive() -> reflexive(orb(a2, c))
   fn orb_cong_r(a: OBit, {b: OBit}, {b2: OBit}, e: Equivalent(OBit, b, b2)) -> Equivalent(OBit, orb(a, b), orb(a, b2)) =
-    rewrite e in reflexive(orb(a, b2))
+    match e
+      reflexive() -> reflexive(orb(a, b2))
   fn andb_l(a: OBit, c: OBit, e: Equivalent(OBit, andb(a, c), OT())) -> Equivalent(OBit, a, OT()) = match a
     OT() -> reflexive(OT())
     OF() -> match e
@@ -117,10 +119,22 @@ mod BstSearch
     Node(l, v, r) -> andb(isbst(l), andb(isbst(r), andb(alllt(l, v), allgt(r, v))))
   fn below_not_lmem(x: OKey, b: OKey, t: Tree, pxb: Equivalent(OBit, cmp(x, b), OT()), pgt: Equivalent(OBit, allgt(t, b), OT())) -> Equivalent(OBit, lmem(x, t), OF()) = match t
     Leaf()        -> reflexive(OF())
-    Node(l, v, r) -> rewrite strict_neq(x, v, strict_trans(x, b, v, pxb, andb_l(cmp(b, v), andb(allgt(l, b), allgt(r, b)), pgt))) in rewrite below_not_lmem(x, b, l, pxb, andb_l(allgt(l, b), allgt(r, b), andb_r(cmp(b, v), andb(allgt(l, b), allgt(r, b)), pgt))) in rewrite below_not_lmem(x, b, r, pxb, andb_r(allgt(l, b), allgt(r, b), andb_r(cmp(b, v), andb(allgt(l, b), allgt(r, b)), pgt))) in reflexive(OF())
+    Node(l, v, r) -> proof chain
+      lmem(x, Node(l, v, r)) == OF()
+      because
+        rewrite using strict_neq(x, v, strict_trans(x, b, v, pxb, andb_l(cmp(b, v), andb(allgt(l, b), allgt(r, b)), pgt)))
+        rewrite using below_not_lmem(x, b, l, pxb, andb_l(allgt(l, b), allgt(r, b), andb_r(cmp(b, v), andb(allgt(l, b), allgt(r, b)), pgt)))
+        rewrite using below_not_lmem(x, b, r, pxb, andb_r(allgt(l, b), allgt(r, b), andb_r(cmp(b, v), andb(allgt(l, b), allgt(r, b)), pgt)))
+        simplify
   fn above_not_lmem(x: OKey, b: OKey, t: Tree, pbx: Equivalent(OBit, cmp(b, x), OT()), plt: Equivalent(OBit, alllt(t, b), OT())) -> Equivalent(OBit, lmem(x, t), OF()) = match t
     Leaf()        -> reflexive(OF())
-    Node(l, v, r) -> rewrite strict_neq_r(x, v, strict_trans(v, b, x, andb_l(cmp(v, b), andb(alllt(l, b), alllt(r, b)), plt), pbx)) in rewrite above_not_lmem(x, b, l, pbx, andb_l(alllt(l, b), alllt(r, b), andb_r(cmp(v, b), andb(alllt(l, b), alllt(r, b)), plt))) in rewrite above_not_lmem(x, b, r, pbx, andb_r(alllt(l, b), alllt(r, b), andb_r(cmp(v, b), andb(alllt(l, b), alllt(r, b)), plt))) in reflexive(OF())
+    Node(l, v, r) -> proof chain
+      lmem(x, Node(l, v, r)) == OF()
+      because
+        rewrite using strict_neq_r(x, v, strict_trans(v, b, x, andb_l(cmp(v, b), andb(alllt(l, b), alllt(r, b)), plt), pbx))
+        rewrite using above_not_lmem(x, b, l, pbx, andb_l(alllt(l, b), alllt(r, b), andb_r(cmp(v, b), andb(alllt(l, b), alllt(r, b)), plt)))
+        rewrite using above_not_lmem(x, b, r, pbx, andb_r(alllt(l, b), alllt(r, b), andb_r(cmp(v, b), andb(alllt(l, b), alllt(r, b)), plt)))
+        simplify
   fn unfold_bst(l: Tree, v: OKey, r: Tree, bst: Equivalent(OBit, isbst(Node(l, v, r)), OT())) -> Equivalent(OBit, andb(isbst(l), andb(isbst(r), andb(alllt(l, v), allgt(r, v)))), OT()) = bst
   fn orb_ofl(a: OBit) -> Equivalent(OBit, orb(OF(), a), a) = reflexive(a)
   fn ml_OA_OB(l: Tree, r: Tree) -> Equivalent(OBit, mem(OA(), Node(l, OB(), r)), mem(OA(), l)) = reflexive(mem(OA(), l))
@@ -151,7 +165,8 @@ mod BstSearch
         OB() -> trans(ml_OC_OB(l, r), trans(mem_eq_lmem(OC(), r, andb_l(isbst(r), andb(alllt(l, OB()), allgt(r, OB())), andb_r(isbst(l), andb(isbst(r), andb(alllt(l, OB()), allgt(r, OB()))), unfold_bst(l, OB(), r, bst)))), trans(sym(trans(orb_cong_l(lmem(OC(), r), above_not_lmem(OC(), OB(), l, reflexive(OT()), andb_l(alllt(l, OB()), allgt(r, OB()), andb_r(isbst(r), andb(alllt(l, OB()), allgt(r, OB())), andb_r(isbst(l), andb(isbst(r), andb(alllt(l, OB()), allgt(r, OB()))), unfold_bst(l, OB(), r, bst)))))), orb_ofl(lmem(OC(), r)))), sym(ll_OC_OB(l, r)))))
         OC() -> reflexive(OT())
   fn andb_intro(a: OBit, c: OBit, pa: Equivalent(OBit, a, OT()), pc: Equivalent(OBit, c, OT())) -> Equivalent(OBit, andb(a, c), OT()) =
-    rewrite pa in pc
+    match pa
+      reflexive() -> pc
   fn allgt_weaken(t: Tree, v: OKey, w: OKey, pwv: Equivalent(OBit, cmp(w, v), OT()), pgt: Equivalent(OBit, allgt(t, v), OT())) -> Equivalent(OBit, allgt(t, w), OT()) = match t
     Leaf()        -> reflexive(OT())
     Node(l, u, r) -> andb_intro(cmp(w, u), andb(allgt(l, w), allgt(r, w)), strict_trans(w, v, u, pwv, andb_l(cmp(v, u), andb(allgt(l, v), allgt(r, v)), pgt)), andb_intro(allgt(l, w), allgt(r, w), allgt_weaken(l, v, w, pwv, andb_l(allgt(l, v), allgt(r, v), andb_r(cmp(v, u), andb(allgt(l, v), allgt(r, v)), pgt))), allgt_weaken(r, v, w, pwv, andb_r(allgt(l, v), allgt(r, v), andb_r(cmp(v, u), andb(allgt(l, v), allgt(r, v)), pgt)))))
@@ -234,10 +249,22 @@ mod BstSearch
     Node(ll, lv, lr) -> trans(orb_cong_r(keq(x, lv), orb_cong_r(lmem(x, ll), lmem_merge(lr, r, x))), sym(trans(orb_assoc(keq(x, lv), orb(lmem(x, ll), lmem(x, lr)), lmem(x, r)), orb_cong_r(keq(x, lv), orb_assoc(lmem(x, ll), lmem(x, lr), lmem(x, r))))))
   fn alllt_absent(x: OKey, t: Tree, plt: Equivalent(OBit, alllt(t, x), OT())) -> Equivalent(OBit, lmem(x, t), OF()) = match t
     Leaf()        -> reflexive(OF())
-    Node(l, v, r) -> rewrite strict_neq_r(x, v, andb_l(cmp(v, x), andb(alllt(l, x), alllt(r, x)), plt)) in rewrite alllt_absent(x, l, andb_l(alllt(l, x), alllt(r, x), andb_r(cmp(v, x), andb(alllt(l, x), alllt(r, x)), plt))) in rewrite alllt_absent(x, r, andb_r(alllt(l, x), alllt(r, x), andb_r(cmp(v, x), andb(alllt(l, x), alllt(r, x)), plt))) in reflexive(OF())
+    Node(l, v, r) -> proof chain
+      lmem(x, Node(l, v, r)) == OF()
+      because
+        rewrite using strict_neq_r(x, v, andb_l(cmp(v, x), andb(alllt(l, x), alllt(r, x)), plt))
+        rewrite using alllt_absent(x, l, andb_l(alllt(l, x), alllt(r, x), andb_r(cmp(v, x), andb(alllt(l, x), alllt(r, x)), plt)))
+        rewrite using alllt_absent(x, r, andb_r(alllt(l, x), alllt(r, x), andb_r(cmp(v, x), andb(alllt(l, x), alllt(r, x)), plt)))
+        simplify
   fn allgt_absent(x: OKey, t: Tree, pgt: Equivalent(OBit, allgt(t, x), OT())) -> Equivalent(OBit, lmem(x, t), OF()) = match t
     Leaf()        -> reflexive(OF())
-    Node(l, v, r) -> rewrite strict_neq(x, v, andb_l(cmp(x, v), andb(allgt(l, x), allgt(r, x)), pgt)) in rewrite allgt_absent(x, l, andb_l(allgt(l, x), allgt(r, x), andb_r(cmp(x, v), andb(allgt(l, x), allgt(r, x)), pgt))) in rewrite allgt_absent(x, r, andb_r(allgt(l, x), allgt(r, x), andb_r(cmp(x, v), andb(allgt(l, x), allgt(r, x)), pgt))) in reflexive(OF())
+    Node(l, v, r) -> proof chain
+      lmem(x, Node(l, v, r)) == OF()
+      because
+        rewrite using strict_neq(x, v, andb_l(cmp(x, v), andb(allgt(l, x), allgt(r, x)), pgt))
+        rewrite using allgt_absent(x, l, andb_l(allgt(l, x), allgt(r, x), andb_r(cmp(x, v), andb(allgt(l, x), allgt(r, x)), pgt)))
+        rewrite using allgt_absent(x, r, andb_r(allgt(l, x), allgt(r, x), andb_r(cmp(x, v), andb(allgt(l, x), allgt(r, x)), pgt)))
+        simplify
   fn mem_delete_eq(k: OKey, t: Tree, bst: Equivalent(OBit, isbst(t), OT())) -> Equivalent(OBit, mem(k, delete(k, t)), OF()) = match t
     Leaf()        -> reflexive(OF())
     Node(l, v, r) -> match k

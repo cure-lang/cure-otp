@@ -24,12 +24,25 @@ mod Otp.Meta.Tree
     Node(l, v, r) -> S(add(size(l), size(r)))
 
   ## Congruences.
-  fn snat_cong({a: Nat}, {b: Nat}, e: Equivalent(Nat, a, b)) -> Equivalent(Nat, S(a), S(b)) =
-    rewrite e in reflexive(S(b))
+  fn snat_cong({a: Nat}, {b: Nat}, e: Equivalent(Nat, a, b)) -> Equivalent(Nat, S(a), S(b)) = proof chain
+    S(a) == S(b)
+    because
+      rewrite using e
+      simplify
   fn add_cong({a1: Nat}, {b1: Nat}, {a2: Nat}, {b2: Nat}, ea: Equivalent(Nat, a1, b1), eb: Equivalent(Nat, a2, b2)) -> Equivalent(Nat, add(a1, a2), add(b1, b2)) =
-    rewrite ea in rewrite eb in reflexive(add(b1, b2))
+    proof chain
+      add(a1, a2) == add(b1, b2)
+      because
+        rewrite using ea
+        rewrite using eb
+        simplify
   fn node_cong({l1: Tree}, {l2: Tree}, v: Nat, {r1: Tree}, {r2: Tree}, el: Equivalent(Tree, l1, l2), er: Equivalent(Tree, r1, r2)) -> Equivalent(Tree, Node(l1, v, r1), Node(l2, v, r2)) =
-    rewrite el in rewrite er in reflexive(Node(l2, v, r2))
+    proof chain
+      Node(l1, v, r1) == Node(l2, v, r2)
+      because
+        rewrite using el
+        rewrite using er
+        simplify
 
   ## Nat commutativity (mirror swaps subtrees, so the size proof needs it).
   fn add_zero_r(x: Nat) -> Equivalent(Nat, add(x, Z()), x) = match x
@@ -39,8 +52,17 @@ mod Otp.Meta.Tree
     Z()  -> reflexive(S(y))
     S(k) -> snat_cong(add_succ_r(k, y))
   fn add_comm(x: Nat, y: Nat) -> Equivalent(Nat, add(x, y), add(y, x)) = match x
-    Z()  -> sym(add_zero_r(y))
-    S(k) -> trans(snat_cong(add_comm(k, y)), sym(add_succ_r(y, k)))
+    Z()  -> proof chain
+      add(Z(), y) == add(y, Z())
+      because
+        rewrite backwards using add_zero_r(y) at 1
+        simplify
+    S(k) -> proof chain
+      add(S(k), y) == add(y, S(k))
+      because
+        rewrite using snat_cong(add_comm(k, y))
+        rewrite backwards using add_succ_r(y, k) at 1
+        simplify
 
   ## **MIRROR IS AN INVOLUTION.** Reflecting a tree twice returns the original — `mirror(mirror(t))
   ## = t`. Induction: each node's subtrees are swapped and swapped back, and by the hypothesis each
@@ -54,7 +76,13 @@ mod Otp.Meta.Tree
   ## order, closed by `add_comm`.
   fn size_mirror(t: Tree) -> Equivalent(Nat, size(mirror(t)), size(t)) = match t
     Leaf()        -> reflexive(Z())
-    Node(l, v, r) -> snat_cong(trans(add_cong(size_mirror(r), size_mirror(l)), add_comm(size(r), size(l))))
+    Node(l, v, r) ->
+      have subtrees = proof chain
+        add(size(mirror(r)), size(mirror(l))) == add(size(l), size(r))
+        because
+          rewrite using add_cong(size_mirror(r), size_mirror(l))
+          simplify using add_comm(size(r), size(l))
+      snat_cong(subtrees)
 
   ## A node-value list (the in-order traversal), with its `append`/`reverse` algebra.
   type TList = TNil | TCons(Nat, TList)
@@ -64,12 +92,24 @@ mod Otp.Meta.Tree
   fn lrev(xs: TList) -> TList = match xs
     TNil()      -> TNil()
     TCons(h, t) -> lapp(lrev(t), TCons(h, TNil()))
-  fn tcons_cong(h: Nat, {a: TList}, {b: TList}, e: Equivalent(TList, a, b)) -> Equivalent(TList, TCons(h, a), TCons(h, b)) =
-    rewrite e in reflexive(TCons(h, b))
+  fn tcons_cong(h: Nat, {a: TList}, {b: TList}, e: Equivalent(TList, a, b)) -> Equivalent(TList, TCons(h, a), TCons(h, b)) = proof chain
+    TCons(h, a) == TCons(h, b)
+    because
+      rewrite using e
+      simplify
   fn lapp_cong(c: TList, {a: TList}, {b: TList}, e: Equivalent(TList, a, b)) -> Equivalent(TList, lapp(a, c), lapp(b, c)) =
-    rewrite e in reflexive(lapp(b, c))
+    proof chain
+      lapp(a, c) == lapp(b, c)
+      because
+        rewrite using e
+        simplify
   fn lapp_cong2({a1: TList}, {b1: TList}, {a2: TList}, {b2: TList}, e1: Equivalent(TList, a1, b1), e2: Equivalent(TList, a2, b2)) -> Equivalent(TList, lapp(a1, a2), lapp(b1, b2)) =
-    rewrite e1 in rewrite e2 in reflexive(lapp(b1, b2))
+    proof chain
+      lapp(a1, a2) == lapp(b1, b2)
+      because
+        rewrite using e1
+        rewrite using e2
+        simplify
   fn lapp_assoc(xs: TList, ys: TList, zs: TList) -> Equivalent(TList, lapp(lapp(xs, ys), zs), lapp(xs, lapp(ys, zs))) = match xs
     TNil()      -> reflexive(lapp(ys, zs))
     TCons(h, t) -> tcons_cong(h, lapp_assoc(t, ys, zs))
@@ -79,8 +119,16 @@ mod Otp.Meta.Tree
 
   ## `reverse` is an ANTIHOMOMORPHISM for `append`: `reverse(xs ++ ys) = reverse(ys) ++ reverse(xs)`.
   fn lrev_app(xs: TList, ys: TList) -> Equivalent(TList, lrev(lapp(xs, ys)), lapp(lrev(ys), lrev(xs))) = match xs
-    TNil()      -> sym(lapp_nil_r(lrev(ys)))
-    TCons(h, t) -> trans(lapp_cong(TCons(h, TNil()), lrev_app(t, ys)), lapp_assoc(lrev(ys), lrev(t), TCons(h, TNil())))
+    TNil()      -> proof chain
+      lrev(lapp(TNil(), ys)) == lapp(lrev(ys), lrev(TNil()))
+      because
+        rewrite backwards using lapp_nil_r(lrev(ys)) at 1
+        simplify
+    TCons(h, t) -> proof chain
+      lrev(lapp(TCons(h, t), ys)) == lapp(lrev(ys), lrev(TCons(h, t)))
+      because
+        rewrite using lapp_cong(TCons(h, TNil()), lrev_app(t, ys))
+        simplify using lapp_assoc(lrev(ys), lrev(t), TCons(h, TNil()))
 
   ## Reduction-bridge lemmas: these hold DEFINITIONALLY (`reflexive`), but stated as explicit
   ## equalities so a `trans`/`cong` chain — whose implicit unification does NOT δ-reduce — can use
@@ -102,7 +150,29 @@ mod Otp.Meta.Tree
   ## explicitly (`lrev_cons`/`lapp_cons`).
   fn flatten_mirror(t: Tree) -> Equivalent(TList, flatten(mirror(t)), lrev(flatten(t))) = match t
     Leaf()        -> reflexive(TNil())
-    Node(l, v, r) -> trans(lapp_cong2(flatten_mirror(r), trans(tcons_cong(v, flatten_mirror(l)), sym(lapp_cons(v, lrev(flatten(l)))))), sym(trans(lrev_app(flatten(l), TCons(v, flatten(r))), trans(lapp_cong(lrev(flatten(l)), lrev_cons(v, flatten(r))), lapp_assoc(lrev(flatten(r)), TCons(v, TNil()), lrev(flatten(l)))))))
+    Node(l, v, r) ->
+      have reflected_subtrees =
+        have root_and_left = proof chain
+          TCons(v, flatten(mirror(l))) == lapp(TCons(v, TNil()), lrev(flatten(l)))
+          because
+            rewrite using tcons_cong(v, flatten_mirror(l))
+            rewrite backwards using lapp_cons(v, lrev(flatten(l))) at 1
+            simplify
+        lapp_cong2(flatten_mirror(r), root_and_left)
+      have reverse_traversal = proof chain
+        lrev(flatten(Node(l, v, r))) == lapp(lrev(flatten(r)), lapp(TCons(v, TNil()), lrev(flatten(l))))
+        because
+          rewrite using lrev_app(flatten(l), TCons(v, flatten(r)))
+          rewrite using lapp_cong(lrev(flatten(l)), lrev_cons(v, flatten(r)))
+          simplify using lapp_assoc(lrev(flatten(r)), TCons(v, TNil()), lrev(flatten(l)))
+      proof chain
+        flatten(mirror(Node(l, v, r))) == lapp(lrev(flatten(r)), lapp(TCons(v, TNil()), lrev(flatten(l))))
+        because reflected_subtrees
+
+        _ == lrev(flatten(Node(l, v, r)))
+        because
+          rewrite backwards using reverse_traversal
+          simplify
 
   ## List length (named `llen` to avoid an ambient collision), distributing over `lapp` as `add`.
   fn llen(xs: TList) -> Nat = match xs
@@ -120,5 +190,12 @@ mod Otp.Meta.Tree
   ## to move the root's `S` through the sum.
   fn size_flatten(t: Tree) -> Equivalent(Nat, llen(flatten(t)), size(t)) = match t
     Leaf()        -> reflexive(Z())
-    Node(l, v, r) -> trans(llen_app(flatten(l), TCons(v, flatten(r))), trans(add_cong(size_flatten(l), trans(llen_cons(v, flatten(r)), snat_cong(size_flatten(r)))), add_succ_r(size(l), size(r))))
+    Node(l, v, r) -> proof chain
+      llen(flatten(Node(l, v, r))) == size(Node(l, v, r))
+      because
+        rewrite using llen_app(flatten(l), TCons(v, flatten(r)))
+        rewrite using size_flatten(l)
+        rewrite using llen_cons(v, flatten(r))
+        rewrite using snat_cong(size_flatten(r))
+        simplify using add_succ_r(size(l), size(r))
 end

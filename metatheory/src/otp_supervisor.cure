@@ -104,8 +104,11 @@ mod Otp.Meta.Supervisor
   fn pool_size({spec: ChildSpec}, p: Pool(spec)) -> Nat = match p
     PNil()         -> Z()
     PCons(c, rest) -> S(pool_size(rest))
-  fn snat_cong({a: Nat}, {b: Nat}, e: Equivalent(Nat, a, b)) -> Equivalent(Nat, S(a), S(b)) =
-    rewrite e in reflexive(S(b))
+  fn snat_cong({a: Nat}, {b: Nat}, e: Equivalent(Nat, a, b)) -> Equivalent(Nat, S(a), S(b)) = proof chain
+    S(a) == S(b)
+    because
+      rewrite using e
+      simplify
 
   ## **DYNAMIC-POOL MEMBERSHIP ALGEBRA.** `start_child` grows the pool by exactly one
   ## (`pool_size(start_child(p)) = S(pool_size(p))`); starting then terminating is the IDENTITY

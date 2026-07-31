@@ -74,13 +74,26 @@ mod Otp.Meta.Set
   ## **UNION IS COMMUTATIVE (at the membership level).** `member(x, union(s1, s2)) = member(x,
   ## union(s2, s1))` — the order of the operands doesn't change who is in the union. Via
   ## `union_member` on both sides and `orb_comm`.
-  fn union_comm_member(x: Key, s1: Set, s2: Set) -> Equivalent(B, mem(x, union(s1, s2)), mem(x, union(s2, s1))) =
-    trans(union_member(x, s1, s2), trans(orb_comm(mem(x, s1), mem(x, s2)), sym(union_member(x, s2, s1))))
+  fn union_comm_member(x: Key, s1: Set, s2: Set) -> Equivalent(B, mem(x, union(s1, s2)), mem(x, union(s2, s1))) = proof chain
+    mem(x, union(s1, s2)) == orb(mem(x, s1), mem(x, s2))
+    because union_member(x, s1, s2)
+
+    _ == orb(mem(x, s2), mem(x, s1))
+    because orb_comm(mem(x, s1), mem(x, s2))
+
+    _ == mem(x, union(s2, s1))
+    because
+      rewrite backwards using union_member(x, s2, s1)
+      simplify
 
   ## **UNION IS IDEMPOTENT (at the membership level).** `member(x, union(s, s)) = member(x, s)` —
   ## uniting a set with itself adds nothing. Via `union_member` and `orb_idem`.
-  fn union_idem_member(x: Key, s: Set) -> Equivalent(B, mem(x, union(s, s)), mem(x, s)) =
-    trans(union_member(x, s, s), orb_idem(mem(x, s)))
+  fn union_idem_member(x: Key, s: Set) -> Equivalent(B, mem(x, union(s, s)), mem(x, s)) = proof chain
+    mem(x, union(s, s)) == orb(mem(x, s), mem(x, s))
+    because union_member(x, s, s)
+
+    _ == mem(x, s)
+    because orb_idem(mem(x, s))
 
   ## Boolean OR is associative, and congruent in each argument — the last pieces needed to lift
   ## union associativity through the distribution law.
@@ -88,20 +101,41 @@ mod Otp.Meta.Set
     F() -> reflexive(orb(b, c))
     T() -> reflexive(T())
   fn orb_cong_l({a: B}, {a2: B}, c: B, e: Equivalent(B, a, a2)) -> Equivalent(B, orb(a, c), orb(a2, c)) =
-    rewrite e in reflexive(orb(a2, c))
+    proof chain
+      orb(a, c) == orb(a2, c)
+      because
+        rewrite using e
+        simplify
   fn orb_cong_r(a: B, {b: B}, {b2: B}, e: Equivalent(B, b, b2)) -> Equivalent(B, orb(a, b), orb(a, b2)) =
-    rewrite e in reflexive(orb(a, b2))
+    proof chain
+      orb(a, b) == orb(a, b2)
+      because
+        rewrite using e
+        simplify
 
   ## **UNION IS ASSOCIATIVE (at the membership level).** `member(x, union(union(s1, s2), s3)) =
   ## member(x, union(s1, union(s2, s3)))` — regrouping the operands doesn't change who is in the
   ## union. Distribute `union_member` on both nestings (congruently, under `orb`) down to a bare
   ## `orb(orb(a, b), c) = orb(a, orb(b, c))`, discharged by `orb_assoc`.
-  fn union_assoc_member(x: Key, s1: Set, s2: Set, s3: Set) -> Equivalent(B, mem(x, union(union(s1, s2), s3)), mem(x, union(s1, union(s2, s3)))) =
-    trans(union_member(x, union(s1, s2), s3),
-      trans(orb_cong_l(mem(x, s3), union_member(x, s1, s2)),
-        trans(orb_assoc(mem(x, s1), mem(x, s2), mem(x, s3)),
-          trans(orb_cong_r(mem(x, s1), sym(union_member(x, s2, s3))),
-            sym(union_member(x, s1, union(s2, s3)))))))
+  fn union_assoc_member(x: Key, s1: Set, s2: Set, s3: Set) -> Equivalent(B, mem(x, union(union(s1, s2), s3)), mem(x, union(s1, union(s2, s3)))) = proof chain
+    mem(x, union(union(s1, s2), s3)) == orb(mem(x, union(s1, s2)), mem(x, s3))
+    because union_member(x, union(s1, s2), s3)
+
+    _ == orb(orb(mem(x, s1), mem(x, s2)), mem(x, s3))
+    because orb_cong_l(mem(x, s3), union_member(x, s1, s2))
+
+    _ == orb(mem(x, s1), orb(mem(x, s2), mem(x, s3)))
+    because orb_assoc(mem(x, s1), mem(x, s2), mem(x, s3))
+
+    _ == orb(mem(x, s1), mem(x, union(s2, s3)))
+    because
+      rewrite backwards using union_member(x, s2, s3)
+      simplify
+
+    _ == mem(x, union(s1, union(s2, s3)))
+    because
+      rewrite backwards using union_member(x, s1, union(s2, s3))
+      simplify
 
   ## Boolean implication `a ⟹ b`, the membership-ordering primitive: `x ∈ s1` entails `x ∈ s2`
   ## precisely when `implb(mem(x, s1), mem(x, s2)) = T` at every key. `orb` absorbs each operand
@@ -110,7 +144,11 @@ mod Otp.Meta.Set
     F() -> T()
     T() -> b
   fn implb_cong_r(a: B, {b: B}, {b2: B}, e: Equivalent(B, b, b2)) -> Equivalent(B, implb(a, b), implb(a, b2)) =
-    rewrite e in reflexive(implb(a, b2))
+    proof chain
+      implb(a, b) == implb(a, b2)
+      because
+        rewrite using e
+        simplify
   fn implb_orb_l(a: B, b: B) -> Equivalent(B, implb(a, orb(a, b)), T()) = match a
     F() -> reflexive(T())
     T() -> reflexive(T())
@@ -124,8 +162,16 @@ mod Otp.Meta.Set
   ## union(s1, s2)` — every element of either part survives into the union (the `⊆`-order witnesses,
   ## so `union` is the join of the membership semilattice). Rewrite the union side to `orb` via
   ## `union_member`, then absorb by `implb_orb_l`/`implb_orb_r`.
-  fn union_upper_l(x: Key, s1: Set, s2: Set) -> Equivalent(B, implb(mem(x, s1), mem(x, union(s1, s2))), T()) =
-    trans(implb_cong_r(mem(x, s1), union_member(x, s1, s2)), implb_orb_l(mem(x, s1), mem(x, s2)))
-  fn union_upper_r(x: Key, s1: Set, s2: Set) -> Equivalent(B, implb(mem(x, s2), mem(x, union(s1, s2))), T()) =
-    trans(implb_cong_r(mem(x, s2), union_member(x, s1, s2)), implb_orb_r(mem(x, s1), mem(x, s2)))
+  fn union_upper_l(x: Key, s1: Set, s2: Set) -> Equivalent(B, implb(mem(x, s1), mem(x, union(s1, s2))), T()) = proof chain
+    implb(mem(x, s1), mem(x, union(s1, s2))) == implb(mem(x, s1), orb(mem(x, s1), mem(x, s2)))
+    because implb_cong_r(mem(x, s1), union_member(x, s1, s2))
+
+    _ == T()
+    because implb_orb_l(mem(x, s1), mem(x, s2))
+  fn union_upper_r(x: Key, s1: Set, s2: Set) -> Equivalent(B, implb(mem(x, s2), mem(x, union(s1, s2))), T()) = proof chain
+    implb(mem(x, s2), mem(x, union(s1, s2))) == implb(mem(x, s2), orb(mem(x, s1), mem(x, s2)))
+    because implb_cong_r(mem(x, s2), union_member(x, s1, s2))
+
+    _ == T()
+    because implb_orb_r(mem(x, s1), mem(x, s2))
 end

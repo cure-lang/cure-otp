@@ -33,10 +33,28 @@ mod Otp.Meta.Session
   ## by name on the match, so no index-existential workaround is needed.)
   fn dual_involution(s: SType) -> Equivalent(SType, dual(dual(s)), s) = match s
     SEnd()        -> reflexive(SEnd())
-    SSend(t, k)   -> rewrite dual_involution(k) in reflexive(SSend(t, k))
-    SRecv(t, k)   -> rewrite dual_involution(k) in reflexive(SRecv(t, k))
-    SSelect(a, b) -> rewrite dual_involution(a) in rewrite dual_involution(b) in reflexive(SSelect(a, b))
-    SOffer(a, b)  -> rewrite dual_involution(a) in rewrite dual_involution(b) in reflexive(SOffer(a, b))
+    SSend(t, k)   -> proof chain
+      dual(dual(SSend(t, k))) == SSend(t, k)
+      because
+        rewrite using dual_involution(k)
+        simplify
+    SRecv(t, k)   -> proof chain
+      dual(dual(SRecv(t, k))) == SRecv(t, k)
+      because
+        rewrite using dual_involution(k)
+        simplify
+    SSelect(a, b) -> proof chain
+      dual(dual(SSelect(a, b))) == SSelect(a, b)
+      because
+        rewrite using dual_involution(a)
+        rewrite using dual_involution(b)
+        simplify
+    SOffer(a, b)  -> proof chain
+      dual(dual(SOffer(a, b))) == SOffer(a, b)
+      because
+        rewrite using dual_involution(a)
+        rewrite using dual_involution(b)
+        simplify
 
   ## Structural COMPATIBILITY: two endpoints can safely communicate — a send on one side is a
   ## receive on the other, recursively. The tag is carried explicitly so the proof can name it.
@@ -48,14 +66,18 @@ mod Otp.Meta.Session
     COff : Compat(la, ra) -> Compat(lb, rb) -> Compat(SOffer(la, lb), SSelect(ra, rb))
 
   ## Congruences for the session constructors under equality.
-  fn ssend_cong(t: Tag, {a: SType}, {b: SType}, e: Equivalent(SType, a, b)) -> Equivalent(SType, SSend(t, a), SSend(t, b)) =
-    rewrite e in reflexive(SSend(t, b))
-  fn srecv_cong(t: Tag, {a: SType}, {b: SType}, e: Equivalent(SType, a, b)) -> Equivalent(SType, SRecv(t, a), SRecv(t, b)) =
-    rewrite e in reflexive(SRecv(t, b))
+  fn ssend_cong(t: Tag, {a: SType}, {b: SType}, e: Equivalent(SType, a, b)) -> Equivalent(SType, SSend(t, a), SSend(t, b)) = match e
+    reflexive() -> reflexive(SSend(t, b))
+  fn srecv_cong(t: Tag, {a: SType}, {b: SType}, e: Equivalent(SType, a, b)) -> Equivalent(SType, SRecv(t, a), SRecv(t, b)) = match e
+    reflexive() -> reflexive(SRecv(t, b))
   fn sselect_cong({a1: SType}, {b1: SType}, {a2: SType}, {b2: SType}, ea: Equivalent(SType, a1, b1), eb: Equivalent(SType, a2, b2)) -> Equivalent(SType, SSelect(a1, a2), SSelect(b1, b2)) =
-    rewrite ea in rewrite eb in reflexive(SSelect(b1, b2))
+    match ea
+      reflexive() -> match eb
+        reflexive() -> reflexive(SSelect(b1, b2))
   fn soffer_cong({a1: SType}, {b1: SType}, {a2: SType}, {b2: SType}, ea: Equivalent(SType, a1, b1), eb: Equivalent(SType, a2, b2)) -> Equivalent(SType, SOffer(a1, a2), SOffer(b1, b2)) =
-    rewrite ea in rewrite eb in reflexive(SOffer(b1, b2))
+    match ea
+      reflexive() -> match eb
+        reflexive() -> reflexive(SOffer(b1, b2))
 
   ## **COMPATIBILITY = DUALITY.** Compatible endpoints are exactly dual endpoints — communication
   ## safety is duality. Induction on the compatibility derivation.
@@ -95,7 +117,20 @@ mod Otp.Meta.Session
   ## channel determines its other endpoint's type uniquely — there is no ambiguity in who `l` talks
   ## to.
   fn compat_unique({l: SType}, r: SType, r2: SType, c1: Compat(l, r), c2: Compat(l, r2)) -> Equivalent(SType, r, r2) =
-    trans(sym(dual_involution(r)), trans(cong(dual, trans(sym(compat_dual(c1)), compat_dual(c2))), dual_involution(r2)))
+    proof chain
+      r == dual(dual(r))
+      because
+        rewrite backwards using dual_involution(r) at 1
+        simplify
+
+      _ == dual(dual(r2))
+      because
+        rewrite backwards using compat_dual(c1)
+        rewrite using compat_dual(c2)
+        simplify
+
+      _ == r2
+      because dual_involution(r2)
 
   ## A communication STEP: one endpoint sends tag `t`, the other receives it, and both advance
   ## to their continuations. Well-formed only when the send/receive tags agree.
@@ -212,8 +247,8 @@ mod Otp.Meta.Session
   fn srun_len({l: SType}, {r: SType}, {l2: SType}, {r2: SType}, run: SRun(l, r, l2, r2)) -> Nat = match run
     SRDone()         -> Z()
     SRStep(st, rest) -> S(srun_len(rest))
-  fn snat_cong({a: Nat}, {b: Nat}, e: Equivalent(Nat, a, b)) -> Equivalent(Nat, S(a), S(b)) =
-    rewrite e in reflexive(S(b))
+  fn snat_cong({a: Nat}, {b: Nat}, e: Equivalent(Nat, a, b)) -> Equivalent(Nat, S(a), S(b)) = match e
+    reflexive() -> reflexive(S(b))
 
   ## **SESSION TERMINATION TIME IS EXACT.** The canonical terminating run of a compatible session
   ## takes EXACTLY `sdepth(l)` communication steps: `srun_len(compat_terminates(c)) = sdepth(l)`.

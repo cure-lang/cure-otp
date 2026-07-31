@@ -43,16 +43,36 @@ mod Otp.Meta.RecursiveSession
   ## **DUALITY IS AN INVOLUTION** (recursive case included).
   fn rdual_involution(s: RSType) -> Equivalent(RSType, rdual(rdual(s)), s) = match s
     REnd()      -> reflexive(REnd())
-    RSend(t, k) -> rewrite rdual_involution(k) in reflexive(RSend(t, k))
-    RRecv(t, k) -> rewrite rdual_involution(k) in reflexive(RRecv(t, k))
+    RSend(t, k) -> proof chain
+      rdual(rdual(RSend(t, k))) == RSend(t, k)
+      because
+        rewrite using rdual_involution(k)
+        simplify
+    RRecv(t, k) -> proof chain
+      rdual(rdual(RRecv(t, k))) == RRecv(t, k)
+      because
+        rewrite using rdual_involution(k)
+        simplify
     RVar()      -> reflexive(RVar())
-    RMu(body)   -> rewrite rdual_involution(body) in reflexive(RMu(body))
+    RMu(body)   -> proof chain
+      rdual(rdual(RMu(body))) == RMu(body)
+      because
+        rewrite using rdual_involution(body)
+        simplify
 
   ## **DUAL DISTRIBUTES OVER SUBSTITUTION.** `dual(S[u/X]) = dual(S)[dual(u)/X]`.
   fn subst_dual(s: RSType, u: RSType) -> Equivalent(RSType, rdual(subst(s, u)), subst(rdual(s), rdual(u))) = match s
     REnd()      -> reflexive(REnd())
-    RSend(t, k) -> rewrite subst_dual(k, u) in reflexive(RRecv(t, subst(rdual(k), rdual(u))))
-    RRecv(t, k) -> rewrite subst_dual(k, u) in reflexive(RSend(t, subst(rdual(k), rdual(u))))
+    RSend(t, k) -> proof chain
+      rdual(subst(RSend(t, k), u)) == subst(rdual(RSend(t, k)), rdual(u))
+      because
+        rewrite using subst_dual(k, u)
+        simplify
+    RRecv(t, k) -> proof chain
+      rdual(subst(RRecv(t, k), u)) == subst(rdual(RRecv(t, k)), rdual(u))
+      because
+        rewrite using subst_dual(k, u)
+        simplify
     RVar()      -> reflexive(rdual(u))
     RMu(body)   -> reflexive(RMu(rdual(body)))
 

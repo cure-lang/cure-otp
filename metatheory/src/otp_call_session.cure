@@ -36,10 +36,13 @@ mod Otp.Meta.CallSession
   ## **DEPENDENT CALL WELL-FORMEDNESS.** For EVERY request the client endpoint is exactly the dual
   ## of the server endpoint — `client(req) = dual(server(req))` — even though the reply tag under
   ## the continuation is the computed `reply_for(req)`. `dual` never inspects `reply_for`, so both
-  ## sides carry the identical (stuck) `reply_for(req)` and the equality holds by reflexivity,
-  ## uniformly in `req`.
-  fn call_duality(req: Req) -> Equivalent(SType, client(req), dual(server(req))) =
-    reflexive(client(req))
+  ## sides carry the identical (stuck) `reply_for(req)`. The proof chain makes
+  ## the theorem statement visible in generated documentation, while
+  ## `simplify` certifies the definitional reduction uniformly in `req`.
+  fn call_duality(req: Req) -> Equivalent(SType, client(req), dual(server(req))) = proof chain
+    client(req) == dual(server(req))
+    because
+      simplify
 
   ## Structural compatibility (a send on one side matched by a receive on the other), enough to
   ## express that a call's endpoints can safely communicate.

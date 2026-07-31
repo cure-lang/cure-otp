@@ -41,12 +41,20 @@ mod Otp.Meta.SignalOrder
   ## step is kept by the projection, a right step (an `SB` message) is dropped.
   fn proj_left({xs: MList}, {ys: MList}, {mbox: MList}, il: Interleave(xs, ys, mbox)) -> Equivalent(MList, proj(SA, mbox), xs) = match il
     ILNil()      -> reflexive(MNil())
-    ILLeft(il2)  -> rewrite proj_left(il2) in reflexive(xs)
+    ILLeft(il2)  -> proof chain
+      proj(SA, mbox) == xs
+      because
+        rewrite using proj_left(il2)
+        simplify
     ILRight(il2) -> proj_left(il2)
 
   ## **PER-SENDER ORDER PRESERVED (sender B).** Symmetric: projecting to `SB` recovers `ys`.
   fn proj_right({xs: MList}, {ys: MList}, {mbox: MList}, il: Interleave(xs, ys, mbox)) -> Equivalent(MList, proj(SB, mbox), ys) = match il
     ILNil()      -> reflexive(MNil())
     ILLeft(il2)  -> proj_right(il2)
-    ILRight(il2) -> rewrite proj_right(il2) in reflexive(ys)
+    ILRight(il2) -> proof chain
+      proj(SB, mbox) == ys
+      because
+        rewrite using proj_right(il2)
+        simplify
 end

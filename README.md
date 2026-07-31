@@ -2,6 +2,19 @@
 
 ## Proved
 
+### Not present in the surveyed research
+
+- [x] Constructor-specific dependent reply types combined with exactly-once linear reply capabilities
+- [x] Operational reply conservation: a complete run loses and duplicates no replies
+- [x] Typed timers whose cancelled references cannot fire
+- [x] Total `gen_server:call` outcomes that make timeout and process failure impossible to ignore
+- [x] Effect-honest typed actor spawning and message sending
+- [x] Progress for well-typed process configurations, including multi-process interleavings
+- [x] Operational adequacy of inferred mailbox types for sequential and branching behaviors
+- [x] Least-fixed-point inference for recursive behaviors with coverage, principality, and operational adequacy
+- [x] Ordered selective receive with preservation and accepted-message evidence
+- [x] Supervision restart strategies tied directly to preservation of declared child specifications
+
 ### Core process safety
 
 - [x] Ether-to-mailbox reduction preserves accepted message tags

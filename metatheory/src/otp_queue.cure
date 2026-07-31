@@ -24,8 +24,11 @@ mod Otp.Meta.Queue
     QNil()       -> QNil()
     QCons(h, t)  -> append(reverse(t), QCons(h, QNil()))
 
-  fn cons_cong(h: Nat, {a: QList}, {b: QList}, e: Equivalent(QList, a, b)) -> Equivalent(QList, QCons(h, a), QCons(h, b)) =
-    rewrite e in reflexive(QCons(h, b))
+  fn cons_cong(h: Nat, {a: QList}, {b: QList}, e: Equivalent(QList, a, b)) -> Equivalent(QList, QCons(h, a), QCons(h, b)) = proof chain
+    QCons(h, a) == QCons(h, b)
+    because
+      rewrite using e
+      simplify
 
   ## `append` is associative — the list lemma the enqueue proof turns on.
   fn append_assoc(xs: QList, ys: QList, zs: QList) -> Equivalent(QList, append(append(xs, ys), zs), append(xs, append(ys, zs))) = match xs
@@ -46,7 +49,11 @@ mod Otp.Meta.Queue
   ## (definitional), then `append_assoc` re-associates `f ++ (reverse(b) ++ [x])` into
   ## `(f ++ reverse(b)) ++ [x] = to_list(q) ++ [x]`. So the two-list encoding is a faithful FIFO.
   fn enqueue_appends(x: Nat, q: Q) -> Equivalent(QList, to_list(enqueue(x, q)), append(to_list(q), QCons(x, QNil()))) = match q
-    MkQ(f, b) -> sym(append_assoc(f, reverse(b), QCons(x, QNil())))
+    MkQ(f, b) -> proof chain
+      to_list(enqueue(x, MkQ(f, b))) == append(to_list(MkQ(f, b)), QCons(x, QNil()))
+      because
+        rewrite backwards using append_assoc(f, reverse(b), QCons(x, QNil()))
+        simplify
 
   ## `QNil` is a right unit for `append` — needed for the reversal case of dequeue.
   fn append_nil_r(xs: QList) -> Equivalent(QList, append(xs, QNil()), xs) = match xs
@@ -93,7 +100,11 @@ mod Otp.Meta.Queue
       QNil()       -> deq_list_reassembles(reverse(b))
 
   fn append_cong(c: QList, {a: QList}, {b: QList}, e: Equivalent(QList, a, b)) -> Equivalent(QList, append(a, c), append(b, c)) =
-    rewrite e in reflexive(append(b, c))
+    proof chain
+      append(a, c) == append(b, c)
+      because
+        rewrite using e
+        simplify
 
   ## **REPRESENTATION INDEPENDENCE.** The two-list split is NOT unique — many `(front, back)` pairs
   ## denote the same logical sequence. The operations are well-defined on that sequence: if `q1` and
@@ -102,10 +113,28 @@ mod Otp.Meta.Queue
   ## (`dequeue_respects`, via `dequeue_reassembles`: `reassemble(dequeue(qi)) = to_list(qi)`). So the
   ## amortized queue is a faithful implementation of the abstract FIFO — the internal split is
   ## invisible to a client.
-  fn enqueue_respects(x: Nat, q1: Q, q2: Q, e: Equivalent(QList, to_list(q1), to_list(q2))) -> Equivalent(QList, to_list(enqueue(x, q1)), to_list(enqueue(x, q2))) =
-    trans(enqueue_appends(x, q1), trans(append_cong(QCons(x, QNil()), e), sym(enqueue_appends(x, q2))))
-  fn dequeue_respects(q1: Q, q2: Q, e: Equivalent(QList, to_list(q1), to_list(q2))) -> Equivalent(QList, reassemble(dequeue(q1)), reassemble(dequeue(q2))) =
-    trans(dequeue_reassembles(q1), trans(e, sym(dequeue_reassembles(q2))))
+  fn enqueue_respects(x: Nat, q1: Q, q2: Q, e: Equivalent(QList, to_list(q1), to_list(q2))) -> Equivalent(QList, to_list(enqueue(x, q1)), to_list(enqueue(x, q2))) = proof chain
+    to_list(enqueue(x, q1)) == append(to_list(q1), QCons(x, QNil()))
+    because enqueue_appends(x, q1)
+
+    _ == append(to_list(q2), QCons(x, QNil()))
+    because append_cong(QCons(x, QNil()), e)
+
+    _ == to_list(enqueue(x, q2))
+    because
+      rewrite backwards using enqueue_appends(x, q2)
+      simplify
+  fn dequeue_respects(q1: Q, q2: Q, e: Equivalent(QList, to_list(q1), to_list(q2))) -> Equivalent(QList, reassemble(dequeue(q1)), reassemble(dequeue(q2))) = proof chain
+    reassemble(dequeue(q1)) == to_list(q1)
+    because dequeue_reassembles(q1)
+
+    _ == to_list(q2)
+    because e
+
+    _ == reassemble(dequeue(q2))
+    because
+      rewrite backwards using dequeue_reassembles(q2)
+      simplify
 
   ## PEEK — inspect the oldest element without removing it (Erlang `queue:peek`). An optional Nat.
   type QOpt = QNone | QSome(Nat)
@@ -160,5 +189,9 @@ mod Otp.Meta.Queue
   fn is_empty_reflects(q: Q) -> Equivalent(B, is_empty(q), qnull(to_list(q))) = match q
     MkQ(f, b) -> match f
       QCons(h, f2) -> reflexive(F())
-      QNil()       -> sym(qnull_reverse(b))
+      QNil()       -> proof chain
+        is_empty(MkQ(QNil(), b)) == qnull(to_list(MkQ(QNil(), b)))
+        because
+          rewrite backwards using qnull_reverse(b)
+          simplify
 end

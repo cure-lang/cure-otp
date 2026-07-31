@@ -28,16 +28,36 @@ mod Otp.Meta.MailboxPattern
     S(k) -> S(plus(k, n))
   fn plus_n_z(n: Nat) -> Equivalent(Nat, plus(n, Z()), n) = match n
     Z()  -> reflexive(Z())
-    S(k) -> rewrite plus_n_z(k) in reflexive(S(k))
+    S(k) -> proof chain
+      plus(S(k), Z()) == S(k)
+      because
+        rewrite using plus_n_z(k)
+        simplify
   fn plus_n_s(m: Nat, n: Nat) -> Equivalent(Nat, plus(m, S(n)), S(plus(m, n))) = match m
     Z()  -> reflexive(S(n))
-    S(k) -> rewrite plus_n_s(k, n) in reflexive(S(S(plus(k, n))))
+    S(k) -> proof chain
+      plus(S(k), S(n)) == S(plus(S(k), n))
+      because
+        rewrite using plus_n_s(k, n)
+        simplify
   fn plus_comm(m: Nat, n: Nat) -> Equivalent(Nat, plus(m, n), plus(n, m)) = match m
-    Z()  -> rewrite plus_n_z(n) in reflexive(n)
-    S(k) -> rewrite plus_n_s(n, k) in rewrite plus_comm(k, n) in reflexive(S(plus(n, k)))
+    Z()  -> proof chain
+      plus(Z(), n) == plus(n, Z())
+      because
+        simplify using plus_n_z(n)
+    S(k) -> proof chain
+      plus(S(k), n) == plus(n, S(k))
+      because
+        rewrite using plus_n_s(n, k)
+        rewrite using plus_comm(k, n)
+        simplify
   fn plus_assoc(a: Nat, b: Nat, c: Nat) -> Equivalent(Nat, plus(plus(a, b), c), plus(a, plus(b, c))) = match a
     Z()  -> reflexive(plus(b, c))
-    S(k) -> rewrite plus_assoc(k, b, c) in reflexive(S(plus(k, plus(b, c))))
+    S(k) -> proof chain
+      plus(plus(S(k), b), c) == plus(S(k), plus(b, c))
+      because
+        rewrite using plus_assoc(k, b, c)
+        simplify
 
   ## A multiset over the 3-tag alphabet = a Parikh vector (counts per tag).
   type MS = MkMS(Nat, Nat, Nat)
@@ -46,11 +66,23 @@ mod Otp.Meta.MailboxPattern
       MkMS(d, e, f) -> MkMS(plus(a, d), plus(b, e), plus(c, f))
   fn msadd_comm(x: MS, y: MS) -> Equivalent(MS, msadd(x, y), msadd(y, x)) = match x
     MkMS(a, b, c) -> match y
-      MkMS(d, e, f) -> rewrite plus_comm(d, a) in rewrite plus_comm(e, b) in rewrite plus_comm(f, c) in reflexive(MkMS(plus(a, d), plus(b, e), plus(c, f)))
+      MkMS(d, e, f) -> proof chain
+        msadd(MkMS(a, b, c), MkMS(d, e, f)) == msadd(MkMS(d, e, f), MkMS(a, b, c))
+        because
+          rewrite using plus_comm(d, a)
+          rewrite using plus_comm(e, b)
+          rewrite using plus_comm(f, c)
+          simplify
   fn msadd_assoc(x: MS, y: MS, z: MS) -> Equivalent(MS, msadd(msadd(x, y), z), msadd(x, msadd(y, z))) = match x
     MkMS(a, b, c) -> match y
       MkMS(d, e, f) -> match z
-        MkMS(g, h, i) -> rewrite plus_assoc(a, d, g) in rewrite plus_assoc(b, e, h) in rewrite plus_assoc(c, f, i) in reflexive(MkMS(plus(a, plus(d, g)), plus(b, plus(e, h)), plus(c, plus(f, i))))
+        MkMS(g, h, i) -> proof chain
+          msadd(msadd(MkMS(a, b, c), MkMS(d, e, f)), MkMS(g, h, i)) == msadd(MkMS(a, b, c), msadd(MkMS(d, e, f), MkMS(g, h, i)))
+          because
+            rewrite using plus_assoc(a, d, g)
+            rewrite using plus_assoc(b, e, h)
+            rewrite using plus_assoc(c, f, i)
+            simplify
   fn msadd_zero_left(y: MS) -> Equivalent(MS, msadd(MkMS(Z, Z, Z), y), y) = match y
     MkMS(d, e, f) -> reflexive(MkMS(d, e, f))
 
@@ -71,6 +103,10 @@ mod Otp.Meta.MailboxPattern
     AStar0 : Accepts(PStar(e), MkMS(Z, Z, Z))
     AStarN : (m1: MS) -> (m2: MS) -> Accepts(e, m1) -> Accepts(PStar(e), m2) -> Accepts(PStar(e), msadd(m1, m2))
 
+  ## Transport an acceptance derivation backwards across equality of its multiset index.
+  fn accepts_transport_back({pat: Pat}, {before: MS}, {after: MS}, equality: Equivalent(MS, before, after), acc: Accepts(pat, after)) -> Accepts(pat, before) = match equality
+    reflexive() -> acc
+
   ## **CHOICE COMMUTATIVITY.** `E+F` and `F+E` denote the same multisets (swap the injection).
   fn plus_pat_comm({e: Pat}, {f: Pat}, {m: MS}, acc: Accepts(PPlus(e, f), m)) -> Accepts(PPlus(f, e), m) = match acc
     APlusL(ae) -> APlusR(ae)
@@ -81,20 +117,20 @@ mod Otp.Meta.MailboxPattern
   ## `msadd_comm` (the Minkowski sum is commutative because `+` on `Nat` is). This is exactly
   ## what a mailbox (an unordered bag of messages) needs and a sequential regex does not have.
   fn times_comm({e: Pat}, {f: Pat}, {m: MS}, acc: Accepts(PTimes(e, f), m)) -> Accepts(PTimes(f, e), m) = match acc
-    ATimes(m1, m2, ae, af) -> rewrite msadd_comm(m1, m2) in ATimes(m2, m1, af, ae)
+    ATimes(m1, m2, ae, af) -> accepts_transport_back(msadd_comm(m1, m2), ATimes(m2, m1, af, ae))
 
   ## **CONCATENATION ASSOCIATIVITY.** `(E·F)·G` and `E·(F·G)` denote the same multisets —
   ## reassociate the two `ATimes` splits and rewrite by `msadd_assoc`. With `times_comm` and
   ## `one_times` this makes `(Pat, PTimes, POne)` a COMMUTATIVE MONOID up to acceptance.
   fn times_assoc({e: Pat}, {f: Pat}, {g: Pat}, {m: MS}, acc: Accepts(PTimes(PTimes(e, f), g), m)) -> Accepts(PTimes(e, PTimes(f, g)), m) = match acc
     ATimes(mef, mg, acc_ef, acc_g) -> match acc_ef
-      ATimes(me, mf, acc_e, acc_f) -> rewrite msadd_assoc(me, mf, mg) in ATimes(me, msadd(mf, mg), acc_e, ATimes(mf, mg, acc_f, acc_g))
+      ATimes(me, mf, acc_e, acc_f) -> accepts_transport_back(msadd_assoc(me, mf, mg), ATimes(me, msadd(mf, mg), acc_e, ATimes(mf, mg, acc_f, acc_g)))
 
   ## **UNIT.** `𝟙·E` denotes the same multisets as `E` (the empty bag is the identity of the
   ## Minkowski sum — definitionally, since `0 + n = n`).
   fn one_times({e: Pat}, {m: MS}, acc: Accepts(PTimes(POne, e), m)) -> Accepts(e, m) = match acc
     ATimes(m1, m2, a1, ae) -> match a1
-      AOne() -> rewrite msadd_zero_left(m2) in ae
+      AOne() -> accepts_transport_back(msadd_zero_left(m2), ae)
 
   ## Boolean connectives + their truth-inversion (which side is `T`), carrying the witness as
   ## a proof term so the derivation can be rebuilt without sibling-index refinement.
@@ -173,7 +209,13 @@ mod Otp.Meta.MailboxPattern
 
   ## Reassociate a Minkowski sum, moving `z` past `y` — `(x⊎y)⊎z ≡ (x⊎z)⊎y`.
   fn ms_swap(x: MS, y: MS, z: MS) -> Equivalent(MS, msadd(msadd(x, y), z), msadd(msadd(x, z), y)) =
-    rewrite msadd_assoc(x, y, z) in rewrite msadd_comm(y, z) in rewrite msadd_assoc(x, z, y) in reflexive(msadd(x, msadd(z, y)))
+    proof chain
+      msadd(msadd(x, y), z) == msadd(msadd(x, z), y)
+      because
+        rewrite using msadd_assoc(x, y, z)
+        rewrite using msadd_comm(y, z)
+        rewrite using msadd_assoc(x, z, y)
+        simplify
 
   ## **DERIVATIVE SOUNDNESS** (one half of the Brzozowski fundamental theorem): if `deriv(E, t)`
   ## accepts `m`, then `E` accepts `m ⊎ {t}`. Constructive — rebuild the derivation, relocating
@@ -208,11 +250,11 @@ mod Otp.Meta.MailboxPattern
       APlusR(db) -> APlusR(deriv_sound(b, t, m, db))
     PTimes(a, b) -> match acc
       APlusL(al) -> match al
-        ATimes(m1, m2, da, ab) -> rewrite ms_swap(m1, m2, singleton(t)) in ATimes(msadd(m1, singleton(t)), m2, deriv_sound(a, t, m1, da), ab)
+        ATimes(m1, m2, da, ab) -> accepts_transport_back(ms_swap(m1, m2, singleton(t)), ATimes(msadd(m1, singleton(t)), m2, deriv_sound(a, t, m1, da), ab))
       APlusR(ar) -> match ar
-        ATimes(m1, m2, aa, db) -> rewrite msadd_assoc(m1, m2, singleton(t)) in ATimes(m1, msadd(m2, singleton(t)), aa, deriv_sound(b, t, m2, db))
+        ATimes(m1, m2, aa, db) -> accepts_transport_back(msadd_assoc(m1, m2, singleton(t)), ATimes(m1, msadd(m2, singleton(t)), aa, deriv_sound(b, t, m2, db)))
     PStar(a)     -> match acc
-      ATimes(m1, m2, da, as) -> rewrite ms_swap(m1, m2, singleton(t)) in AStarN(msadd(m1, singleton(t)), m2, deriv_sound(a, t, m1, da), as)
+      ATimes(m1, m2, da, as) -> accepts_transport_back(ms_swap(m1, m2, singleton(t)), AStarN(msadd(m1, singleton(t)), m2, deriv_sound(a, t, m1, da), as))
 
   ## **KLEENE STAR FIXPOINT LAW.** `*E ≡ 𝟙 ⊕ E·(*E)` up to accepted bags — the defining
   ## unfolding of the star. Both directions are constructor rearrangements (`AStar0`/`AStarN`
@@ -322,5 +364,5 @@ mod Otp.Meta.MailboxPattern
     WCons(t, rest) -> dfold(deriv(e, t), rest)
   fn matches_word_sound(e: Pat, w: Word, h: Equivalent(B, nullable(dfold(e, w)), T)) -> Accepts(e, parikh(w)) = match w
     WNil()         -> nullable_sound(e, h)
-    WCons(t, rest) -> rewrite msadd_comm(singleton(t), parikh(rest)) in deriv_sound(e, t, parikh(rest), matches_word_sound(deriv(e, t), rest, h))
+    WCons(t, rest) -> accepts_transport_back(msadd_comm(singleton(t), parikh(rest)), deriv_sound(e, t, parikh(rest), matches_word_sound(deriv(e, t), rest, h)))
 end
