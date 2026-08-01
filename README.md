@@ -1,5 +1,25 @@
 # Cure OTP proof checklist
 
+## What this is
+
+Cure OTP explores what Erlang/OTP can look like when process protocols are part
+of the type system. It combines a small typed interface to BEAM concurrency with
+a substantial, machine-checked metatheory written in Cure itself.
+
+OTP is remarkably good at keeping systems alive, but many of its most important
+contracts normally live in documentation and convention: which messages a
+process accepts, which reply belongs to a request, whether a timeout was handled,
+or whether a protocol can still make progress. Cure's dependent and linear types
+let us state many of those contracts precisely and reject programs that break
+them before they run.
+
+This repository exists to test that idea honestly. The `lib` directory contains
+the package surface; `metatheory` contains proofs, counterexamples, and a paired
+Cure/Idris oracle used to check the boundaries of the model. It is an active
+formalisation project, not a claim that all of OTP has already been verified.
+The checklist below records exactly what has been established and what remains
+open.
+
 ## Proved
 
 ### Not present in the surveyed research
@@ -199,4 +219,4 @@
 
 ### Explicitly outside the proof goal
 
-- [ ] Treat unrestricted static deadlock and liveness checking as a runtime analysis problem rather than a decidable type-system theorem
+- Treat unrestricted static deadlock and liveness checking as a runtime analysis problem rather than a decidable type-system theorem

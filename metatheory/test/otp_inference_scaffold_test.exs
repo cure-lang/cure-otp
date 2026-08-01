@@ -1,14 +1,13 @@
 defmodule Cure.Otp.MetaInferenceScaffoldTest do
   @moduledoc """
-  The G9 research scaffolds (`docs/research/process-types/scaffolds/`) are DESIGN ARTIFACTS
-  for the open core of mailbox-type inference: the least-fixpoint outer shape
+  The metatheory scaffolds are design artifacts for the open core of
+  mailbox-type inference: the least-fixpoint outer shape
   (`inference_fixpoint.cure`) and the constraint-generation frontier
   (`inference_frontier.cure`), with typed holes (`?name`) for the intractable inner parts.
 
   These tests pin that the OUTER SHAPES are well-formed — they type-check with their holes,
   so the interfaces the holes must satisfy are real, not hand-waving. The holes' fills are
-  mapped to specific Lean mathlib / Lean-core theorems in
-  `2026-07-17-mailbox-inference-fixpoint-shape.md`.
+  represented explicitly by the named holes in each scaffold.
   """
   use ExUnit.Case, async: true
 

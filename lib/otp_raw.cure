@@ -22,9 +22,8 @@ mod Otp.Raw
   ##     target arrive in order — messages and exit signals alike. Order between
   ##     DIFFERENT senders is unspecified.
   ##
-  ## (Bereczky/Horpácsi/Thompson, *A Formalisation of Core Erlang*, Thm. 2 and Ex. 3;
-  ## verified against AtomVM in
-  ## docs/research/process-types/raw-algebra-conformance-checklist.md.)
+  ## These limits follow the BEAM signal-ordering semantics and are verified by
+  ## the AtomVM conformance tests in this repository.
   ##
   ## Messages and replies are POLYMORPHIC, not `Any`: the type variable is the
   ## narrow point where `Otp` supplies the message-set code `m`. Payloads must
